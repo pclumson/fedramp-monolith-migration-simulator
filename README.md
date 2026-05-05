@@ -108,3 +108,18 @@ Directory	Description
 🤝 Contributing & Feedback
 
 This project serves as a reference implementation for enterprise modernization. Feedback on security patterns or architectural decisions is welcome.
+
+## Current Files structure
+
+<img width="631" height="561" alt="Screenshot_20260504_213913" src="https://github.com/user-attachments/assets/d78e46a0-1c36-4e01-a112-0ef538b772b4" />
+
+
+Built with ❤️ by Prince Clumson-Eklu | Senior Full Stack Engineer
+
+
+---
+
+### 3. The `docker-compose.yml`
+This file spins up the database, the legacy app, the new microservices, and the gateway.
+
+```yaml
