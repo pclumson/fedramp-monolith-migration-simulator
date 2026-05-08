@@ -109,9 +109,6 @@ Directory	Description
 
 This project serves as a reference implementation for enterprise modernization. Feedback on security patterns or architectural decisions is welcome.
 
-## Current Files structure
-
-<img width="631" height="561" alt="Screenshot_20260504_213913" src="https://github.com/user-attachments/assets/d78e46a0-1c36-4e01-a112-0ef538b772b4" />
 
 
 Built with ❤️ by Prince Clumson-Eklu | Senior Full Stack Engineer
@@ -134,7 +131,12 @@ Built with ❤️ by Prince Clumson-Eklu | Senior Full Stack Engineer
 
 
 
+## Current Files structure (Work in Progress )
 
+<img width="644" height="516" alt="Screenshot 2026-05-08 134550" src="https://github.com/user-attachments/assets/fa6bd1f0-777e-4916-b3c6-571f23137075" />
+
+# Incremental work in progress
+<img width="631" height="561" alt="Screenshot_20260504_213913" src="https://github.com/user-attachments/assets/d78e46a0-1c36-4e01-a112-0ef538b772b4" />
 
 
 
