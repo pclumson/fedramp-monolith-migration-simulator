@@ -125,6 +125,14 @@ Built with ❤️ by Prince Clumson-Eklu | Senior Full Stack Engineer
 # The Modernization Approach
 <img width="1308" height="646" alt="Screenshot_20260508_020117" src="https://github.com/user-attachments/assets/3ec54c91-112e-40bc-956b-c24625664a2e" />
 
+# Infracstructure as Code in mind
+<img width="1089" height="675" alt="Screenshot_20260507_032037" src="https://github.com/user-attachments/assets/e0e114b3-1ff4-48ac-a3a4-7116eea5656c" />
+
+# The Terraform
+<img width="1164" height="665" alt="Screenshot_20260507_200759" src="https://github.com/user-attachments/assets/f6732422-d822-47d8-875e-101ea74014fc" />
+
+
+
 
 
 
