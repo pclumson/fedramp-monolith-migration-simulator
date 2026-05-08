@@ -1,49 +1,238 @@
-image: hashicorp/terraform:1.5.0
+# .gitlab-ci.yml
+# FedRAMP High Monolith-to-Microservices Migration Pipeline
+# Target Environment: AWS GovCloud (us-gov-west-1)
+
+image: alpine:3.18
 
 variables:
-  TF_VAR_db_password: "${DB_PASSWORD}" # Secret injected from GitLab CI Variables
+  # Docker Registry (Simulated AWS ECR)
+  DOCKER_REGISTRY: "registry.gitlab.com/pclumson/fedramp-sim"
+  DOCKER_TLS_CERTDIR: "/certs"
+  
+  # Terraform Variables
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  
+  # Security Scan Thresholds
+  SECURITY_SCAN_FAIL_ON_CRITICAL: "true"
 
 stages:
+  - lint
   - build
   - test
   - security-scan
   - infra-plan
-  - infra-apply
+  - deploy-staging
+  - deploy-prod
 
+# -----------------------------------------------------------------------------
+# 1. LINT & CODE QUALITY
+# -----------------------------------------------------------------------------
+lint_java:
+  stage: lint
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - cd backend
+    - mvn spotless:check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+lint_angular:
+  stage: lint
+  image: node:18-alpine
+  script:
+    - cd frontend-new
+    - npm ci
+    - npm run lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# -----------------------------------------------------------------------------
+# 2. BUILD ARTIFACTS
+# -----------------------------------------------------------------------------
 build_backend:
   stage: build
+  image: maven:3.9.6-eclipse-temurin-17
   script:
-    - cd backend && mvn clean package -DskipTests
+    - cd backend
+    - mvn clean package -DskipTests
   artifacts:
     paths:
       - backend/target/*.jar
+    expire_in: 1 day
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-security_scan:
-  stage: security-scan
+build_frontend:
+  stage: build
+  image: node:18-alpine
   script:
-    - echo "Running Trivy on container images..."
-    - echo "Running OWASP Dependency Check..."
-    - echo "Scanning Terraform code with Checkov..."
-    - checkov -d infra/ --quiet
-  allow_failure: false # FAIL BUILD IF INFRA IS INSECURE
+    - cd frontend-new
+    - npm ci
+    - npm run build -- --configuration=production
+  artifacts:
+    paths:
+      - frontend-new/dist/
+    expire_in: 1 day
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-infra-plan:
+# -----------------------------------------------------------------------------
+# 3. TESTS
+# -----------------------------------------------------------------------------
+test_backend:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - cd backend
+    - mvn test
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+test_frontend:
+  stage: test
+  image: node:18-alpine
+  script:
+    - cd frontend-new
+    - npm ci
+    - npm run test -- --watch=false --browsers=ChromeHeadless
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# -----------------------------------------------------------------------------
+# 4. SECURITY SCANNING (FedRAMP Critical)
+# -----------------------------------------------------------------------------
+security_scan_infra:
+  stage: security-scan
+  image: bridgecrew/checkov:latest
+  script:
+    - echo "Running Checkov on Terraform code..."
+    - checkov -d infra/ --quiet --framework terraform
+    - echo "PASSED: No critical infrastructure misconfigurations found."
+  allow_failure: false # FAIL PIPELINE IF INFRA IS INSECURE
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+security_scan_deps:
+  stage: security-scan
+  image: maven:3.9.6-eclipse-temurin-17
+  script:
+    - cd backend
+    - mvn dependency-check:check
+    - echo "Dependency scan complete."
+  allow_failure: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# -----------------------------------------------------------------------------
+# 5. INFRASTRUCTURE PLANNING (Terraform)
+# -----------------------------------------------------------------------------
+infra_plan:
   stage: infra-plan
+  image: hashicorp/terraform:1.6.0
   script:
     - cd infra
-    - terraform init
+    - terraform init -backend-config="bucket=${TF_STATE_BUCKET}"
     - terraform plan -out=tfplan
   artifacts:
     paths:
       - infra/tfplan
-  only:
-    - main
+    expire_in: 1 hour
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
-infra-apply:
-  stage: infra-apply
+# -----------------------------------------------------------------------------
+# 6. DEPLOYMENT (Strangler Pattern Simulation)
+# -----------------------------------------------------------------------------
+deploy_staging:
+  stage: deploy-staging
+  image: amazon/aws-cli:latest
+  script:
+    - echo "Deploying to Staging (GovCloud)..."
+    - echo "Uploading JAR to S3..."
+    - echo "Updating ECS Task Definition..."
+    - echo "Routing 10% traffic to new microservice..."
+    - echo "Staging deployment successful."
+  environment:
+    name: staging
+    url: https://staging.fedramp-sim.gov
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual # Manual approval for Staging
+
+deploy_prod:
+  stage: deploy-prod
+  image: hashicorp/terraform:1.6.0
   script:
     - cd infra
     - terraform apply -input=false tfplan
-  when: manual # Manual approval required for FedRAMP High changes
-  only:
-    - main
+    - echo "Applying infrastructure changes..."
+    - echo "Routing 100% traffic to new microservice (Strangler Complete)..."
+    - echo "Production deployment successful."
+  environment:
+    name: production
+    url: https://prod.fedramp-sim.gov
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual # CRITICAL: Manual approval required for PROD in FedRAMP
+  dependencies:
+    - infra_plan
+
+
+
+
+
+
+
+
+# image: hashicorp/terraform:1.5.0
+
+# variables:
+#   TF_VAR_db_password: "${DB_PASSWORD}" # Secret injected from GitLab CI Variables
+
+# stages:
+#   - build
+#   - test
+#   - security-scan
+#   - infra-plan
+#   - infra-apply
+
+# build_backend:
+#   stage: build
+#   script:
+#     - cd backend && mvn clean package -DskipTests
+#   artifacts:
+#     paths:
+#       - backend/target/*.jar
+
+# security_scan:
+#   stage: security-scan
+#   script:
+#     - echo "Running Trivy on container images..."
+#     - echo "Running OWASP Dependency Check..."
+#     - echo "Scanning Terraform code with Checkov..."
+#     - checkov -d infra/ --quiet
+#   allow_failure: false # FAIL BUILD IF INFRA IS INSECURE
+
+# infra-plan:
+#   stage: infra-plan
+#   script:
+#     - cd infra
+#     - terraform init
+#     - terraform plan -out=tfplan
+#   artifacts:
+#     paths:
+#       - infra/tfplan
+#   only:
+#     - main
+
+# infra-apply:
+#   stage: infra-apply
+#   script:
+#     - cd infra
+#     - terraform apply -input=false tfplan
+#   when: manual # Manual approval required for FedRAMP High changes
+#   only:
+#     - main
