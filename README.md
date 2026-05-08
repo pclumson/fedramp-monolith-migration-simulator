@@ -57,7 +57,7 @@ This implementation prioritizes security controls required for high-assurance en
 
 🛠️ Tech Stack
 
-    Backend: Java 17, Spring Boot 3.x, Spring Cloud Gateway
+    Backend: Java 21, Spring Boot 4.x, Spring Cloud Gateway
     Frontend: Angular 17+ (Demonstrating specific framework proficiency)
     Infrastructure: Docker, Docker Compose, Terraform (IaC)
     Database: PostgreSQL (Simulating RDS/Aurora)
@@ -70,7 +70,7 @@ This project runs entirely in Docker to simulate the AWS GovCloud environment lo
 Prerequisites
 
     Docker & Docker Compose
-    Java 17 (for local dev)
+    Java 21 (for local dev)
     Node.js 18+ (for Angular dev)
 
 Run the Simulation
