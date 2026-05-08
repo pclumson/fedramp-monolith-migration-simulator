@@ -122,6 +122,13 @@ Built with ❤️ by Prince Clumson-Eklu | Senior Full Stack Engineer
 # The Strangler Pattern
 <img width="1259" height="637" alt="Screenshot_20260508_012528" src="https://github.com/user-attachments/assets/c9fe077d-104b-41bb-8348-3e7f854d8eaa" />
 
+# The Modernization Approach
+<img width="1308" height="646" alt="Screenshot_20260508_020117" src="https://github.com/user-attachments/assets/3ec54c91-112e-40bc-956b-c24625664a2e" />
+
+
+
+
+
 
 ### 3. The `docker-compose.yml`
 This file spins up the database, the legacy app, the new microservices, and the gateway.
